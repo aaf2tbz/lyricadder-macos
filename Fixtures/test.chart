@@ -1,0 +1,59 @@
+﻿[Song]
+{
+  Name = "Test Song!"
+  Artist = "The Testers"
+  Charter = "Fixture"
+  Offset = 0
+  Resolution = 192
+  Player2 = bass
+  Difficulty = 0
+  PreviewStart = 0
+  PreviewEnd = 0
+  Genre = "rock"
+  MediaType = "cd"
+  MusicStream = "song.ogg"
+}
+[SyncTrack]
+{
+  0 = TS 4
+  0 = B 120000
+  1536 = B 150000
+  3072 = TS 3
+}
+[Events]
+{
+  0 = E "section Intro"
+  384 = E "phrase_start"
+  384 = E "lyric "
+  480 = E "Default"
+  576 = E "lyric "
+  672 = E "lyric "
+  768 = E "phrase_end"
+  960 = E "lyric "
+  960 = E "phrase_start"
+  1056 = E "lyric "
+  1152 = E "section Verse"
+  1248 = E "lyric "
+  1536 = E "phrase_start"
+  1536 = E "Default"
+  1632 = E "lyric "
+  1728 = E "lyric "
+  1824 = E "lyric "
+  1920 = E "phrase_end"
+  2304 = E "phrase_start"
+  2304 = E "lyric "
+  2400 = E "lyric "
+  2688 = E "phrase_end"
+  3072 = E "section Outro"
+}
+[ExpertSingle]
+{
+  384 = N 0 0
+  480 = N 1 0
+  576 = N 2 96
+  960 = S 2 192
+}
+[ExpertDrums]
+{
+  384 = N 0 0
+}
