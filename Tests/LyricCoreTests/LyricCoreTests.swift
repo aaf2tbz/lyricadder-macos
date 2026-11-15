@@ -140,20 +140,35 @@ private let fixtures = URL(fileURLWithPath: #filePath)
 /// Builds a tiny SMF with a PART VOCALS track from raw event bytes.
 private func smf(vocals: [UInt8]) -> Data {
     func chunk(_ type: String, _ body: [UInt8]) -> [UInt8] {
-        Array(type.utf8) + [UInt8(body.count >> 24 & 0xFF), UInt8(body.count >> 16 & 0xFF), UInt8(body.count >> 8 & 0xFF), UInt8(body.count & 0xFF)] + body
+        let n = UInt32(body.count)
+        var out = Array(type.utf8)
+        out += withUnsafeBytes(of: n.bigEndian) { Array($0) }
+        out += body
+        return out
     }
-    let name: [UInt8] = [0x00, 0xFF, 0x03, 11] + Array("PART VOCALS".utf8)
-    return Data(chunk("MThd", [0, 1, 0, 1, 0x01, 0xE0]) + chunk("MTrk", name + vocals + [0x00, 0xFF, 0x2F, 0x00]))
+    var track: [UInt8] = [0x00, 0xFF, 0x03, 11]
+    track += Array("PART VOCALS".utf8)
+    track += vocals
+    track += [0x00, 0xFF, 0x2F, 0x00]
+    var file = chunk("MThd", [0, 1, 0, 1, 0x01, 0xE0])
+    file += chunk("MTrk", track)
+    return Data(file)
 }
 
 private func lyric(_ delta: UInt8, _ s: String) -> [UInt8] { [delta, 0xFF, 0x05, UInt8(s.utf8.count)] + Array(s.utf8) }
 
 @Test func noteOffEndsPhraseAndSlidesAreNotSyllables() throws {
     // 0x80 note-off ends the phrase (the original treated it as a new phrase start).
-    let ev: [UInt8] = [0x00, 0x90, 105, 100] + lyric(0, "one") + lyric(10, "+") + lyric(10, "two^")
-        + [0x10, 0x80, 105, 64]
-        + lyric(10, "outside")
-        + [0x10, 0x90, 105, 100] + lyric(0, "three") + [0x10, 0x90, 105, 0]
+    // Built step by step: one long `+` chain is too slow for older Swift type checkers.
+    var ev: [UInt8] = [0x00, 0x90, 105, 100]
+    ev += lyric(0, "one")
+    ev += lyric(10, "+")
+    ev += lyric(10, "two^")
+    ev += [0x10, 0x80, 105, 64]
+    ev += lyric(10, "outside")
+    ev += [0x10, 0x90, 105, 100]
+    ev += lyric(0, "three")
+    ev += [0x10, 0x90, 105, 0]
     let m = try MidiDocument(data: smf(vocals: ev), url: URL(fileURLWithPath: "/x/notes.mid"))
     #expect(m.phrases.map { $0.syllables.map(\.text) } == [["one", "two"], ["three"]])
     let out = try m.applying(lyrics: LyricInput.parse("uno dos\ntres"))
@@ -166,7 +181,9 @@ private func lyric(_ delta: UInt8, _ s: String) -> [UInt8] { [delta, 0xFF, 0x05,
 }
 
 @Test func longLyricUsesMultiByteLength() throws {
-    let ev: [UInt8] = [0x00, 0x90, 105, 100] + lyric(0, "x") + [0x10, 0x90, 105, 0]
+    var ev: [UInt8] = [0x00, 0x90, 105, 100]
+    ev += lyric(0, "x")
+    ev += [0x10, 0x90, 105, 0]
     let m = try MidiDocument(data: smf(vocals: ev), url: URL(fileURLWithPath: "/x/notes.mid"))
     let long = String(repeating: "ä", count: 100) // 200 UTF-8 bytes > 127: needs a 2-byte VLQ length
     let out = try m.applying(lyrics: LyricInput.parse(long))
