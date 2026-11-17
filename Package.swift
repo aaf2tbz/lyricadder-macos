@@ -14,6 +14,7 @@ let package = Package(
         .target(name: "LyricCore"),
 
         // Vendored stb_vorbis (public domain / MIT) so Clone Hero .ogg stems play natively.
+        // (.opus stems go through CoreAudio's Opus codec; see LyricRender/OpusDecoder.swift.)
         .target(
             name: "CStbVorbis",
             cSettings: [.unsafeFlags(["-O3", "-w"])]
@@ -36,6 +37,10 @@ let package = Package(
         .testTarget(
             name: "LyricCoreTests",
             dependencies: ["LyricCore"]
+        ),
+        .testTarget(
+            name: "LyricRenderTests",
+            dependencies: ["LyricRender"]
         ),
     ],
     swiftLanguageModes: [.v5]

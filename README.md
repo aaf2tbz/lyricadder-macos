@@ -8,7 +8,7 @@ rebuilt in Swift with a Metal karaoke preview.
 
 ## Download
 
-Get **LyricAdder-1.2.2.zip** from [Releases](../../releases). It's a universal app (Apple silicon + Intel),
+Get **LyricAdder-1.2.3.zip** from [Releases](../../releases). It's a universal app (Apple silicon + Intel),
 needs macOS 14 or later, and is signed with Developer ID and notarized by Apple. Unzip it and open it.
 
 ## How to use it
@@ -26,8 +26,8 @@ needs macOS 14 or later, and is signed with Developer ID and notarized by Apple.
    literal hyphen. The gutter shows `syllables/lyric events` for each phrase and turns red when they don't match.
 4. Click **Write new chart**. A timestamped backup of the untouched file is saved first.
    (For MIDI, the result is written as `lyricAdderOutput.mid` next to the original.)
-5. **Lyric Preview** plays the song folder's audio (`song.ogg` and the other stems) with a karaoke wipe, so you can
-   check the timing. It can also preview lyrics you haven't written to the file yet.
+5. **Lyric Preview** plays the song folder's audio (`song.ogg` / `song.opus` and the other stems) with a karaoke
+   wipe, so you can check the timing. It can also preview lyrics you haven't written to the file yet.
 
 Settings and backups are stored in `~/Library/Application Support/LyricAdder/`.
 
@@ -72,7 +72,7 @@ NOTARY_PROFILE=my-profile ./scripts/notarize.sh  # notarize, staple, zip
 | --- | --- |
 | `Sources/LyricCore` | file formats and logic (no UI) |
 | `Sources/LyricRender` | Metal renderer, Core Text rasterizer, audio decoding and playback |
-| `Sources/CStbVorbis` | stb_vorbis for `.ogg` playback |
+| `Sources/CStbVorbis` | stb_vorbis for `.ogg` playback (`.opus` uses CoreAudio's Opus codec) |
 | `Sources/LyricAdder` | SwiftUI / AppKit app |
 | `Sources/lyricadder-cli` | command line tool |
 | `scripts/parity_original.js` | runs the original JavaScript headlessly, to compare results |

@@ -9,7 +9,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
     public var lyricsInput: String
     public var mainPageDoNotShow: Bool
 
-    public static let appVersion = "1.2.2"
+    public static let appVersion = "1.2.3"
 
     public static var supportFolder: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first

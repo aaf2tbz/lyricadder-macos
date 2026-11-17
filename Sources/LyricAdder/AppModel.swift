@@ -191,7 +191,7 @@ final class AppModel: ObservableObject {
         isPlaying = false
         audioDuration = 0
         let files = AudioDecoder.songFiles(in: folder)
-        guard !files.isEmpty else { audioStatus = "No audio (song.ogg / *.mp3 …) found next to the file"; return }
+        guard !files.isEmpty else { audioStatus = "No audio (song.ogg / song.opus / *.mp3 …) found next to the file"; return }
         audioStatus = "Decoding \(files.map(\.lastPathComponent).joined(separator: ", "))…"
         audioTask?.cancel()
         audioTask = Task { [weak self] in

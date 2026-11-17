@@ -19,15 +19,21 @@ public enum AudioDecodeError: LocalizedError {
 }
 
 public enum AudioDecoder {
+    /// Ogg Opus (Clone Hero's usual stem format) through CoreAudio's Opus codec.
+    public static func decodeOpus(url: URL) throws -> DecodedAudio { try OpusDecoder.decode(url: url) }
+
     /// Ogg Vorbis through the vendored stb_vorbis (CoreAudio has no Ogg container support).
     public static func decodeVorbis(url: URL) throws -> DecodedAudio {
-        let data = try Data(contentsOf: url)
+        try decodeVorbis(data: Data(contentsOf: url), name: url.lastPathComponent)
+    }
+
+    static func decodeVorbis(data: Data, name: String) throws -> DecodedAudio {
         var err: Int32 = 0
         let handle: OpaquePointer? = data.withUnsafeBytes { raw in
             lav_vorbis_open_memory(raw.bindMemory(to: UInt8.self).baseAddress, Int32(raw.count), &err)
         }
         guard let v = handle else {
-            throw AudioDecodeError.failed("\(url.lastPathComponent): not a Vorbis stream (stb_vorbis error \(err))")
+            throw AudioDecodeError.failed("\(name): not a Vorbis stream (stb_vorbis error \(err))")
         }
         defer { lav_vorbis_close(v) }
         let ch = Int(lav_vorbis_channels(v))
@@ -71,8 +77,12 @@ public enum AudioDecoder {
 
     public static func decode(url: URL) throws -> DecodedAudio {
         let ext = url.pathExtension.lowercased()
-        if ext == "ogg" || ext == "oga" { return try decodeVorbis(url: url) }
-        if ext == "opus" { throw AudioDecodeError.unsupported("\(url.lastPathComponent): Ogg Opus is not supported yet") }
+        if ext == "ogg" || ext == "oga" || ext == "opus" {
+            // Go by the stream, not the extension: some charts ship Opus audio named .ogg.
+            let data = try Data(contentsOf: url)
+            if ext == "opus" || OpusDecoder.isOggOpus(data) { return try OpusDecoder.decode(data: data, name: url.lastPathComponent) }
+            return try decodeVorbis(data: data, name: url.lastPathComponent)
+        }
         return try decodeCoreAudio(url: url)
     }
 
@@ -81,7 +91,7 @@ public enum AudioDecoder {
         "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2",
         "drums", "drums_1", "drums_2", "drums_3", "drums_4", "backing",
     ]
-    static let audioExtensions: Set<String> = ["ogg", "oga", "mp3", "wav", "flac", "m4a", "aac", "aiff", "aif", "caf"]
+    static let audioExtensions: Set<String> = ["ogg", "oga", "opus", "mp3", "wav", "flac", "m4a", "aac", "aiff", "aif", "caf"]
 
     /// Audio files to play for a chart folder. The original picked `song.ogg` (or any .ogg/.mp3);
     /// this mixes every Clone Hero stem so the vocals stem is audible in the preview.
@@ -91,11 +101,12 @@ public enum AudioDecoder {
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
         let stems = audio.filter { stemNames.contains($0.deletingPathExtension().lastPathComponent.lowercased()) }
         if !stems.isEmpty {
-            // One file per stem name (prefer ogg like the original).
+            // One file per stem name (prefer ogg like the original, then opus).
             var byName: [String: URL] = [:]
             for u in stems {
                 let k = u.deletingPathExtension().lastPathComponent.lowercased()
-                if byName[k] == nil || u.pathExtension.lowercased() == "ogg" { byName[k] = u }
+                let rank: (URL) -> Int = { ["ogg": 0, "opus": 1][$0.pathExtension.lowercased()] ?? 2 }
+                if byName[k].map({ rank(u) < rank($0) }) ?? true { byName[k] = u }
             }
             return byName.keys.sorted().map { byName[$0]! }
         }

@@ -7,6 +7,22 @@ import UniformTypeIdentifiers
 
 // Headless front end for the same core the app uses. Handy for scripting and for verifying the port.
 
+/// 32-bit float WAV, interleaved (for comparing the decoders with other tools).
+func writeFloatWav(_ a: DecodedAudio, to url: URL) throws {
+    let ch = a.channels.count, n = a.frameCount
+    var d = Data()
+    func u32(_ v: UInt32) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+    func u16(_ v: UInt16) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+    let dataBytes = UInt32(n * ch * 4)
+    d.append(contentsOf: Array("RIFF".utf8)); u32(36 + dataBytes); d.append(contentsOf: Array("WAVEfmt ".utf8))
+    u32(16); u16(3); u16(UInt16(ch)); u32(UInt32(a.sampleRate)); u32(UInt32(a.sampleRate) * UInt32(ch * 4)); u16(UInt16(ch * 4)); u16(32)
+    d.append(contentsOf: Array("data".utf8)); u32(dataBytes)
+    var inter = [Float](repeating: 0, count: n * ch)
+    for c in 0..<ch { for i in 0..<n { inter[i * ch + c] = a.channels[c][i] } }
+    inter.withUnsafeBytes { d.append(contentsOf: $0) }
+    try d.write(to: url)
+}
+
 func usage() -> Never {
     print("""
     lyricadder-cli — LyricAdder native port, command line
@@ -17,7 +33,8 @@ func usage() -> Never {
       apply <file> <lyrics.txt> [--out <path>] [--backup-dir <dir>]
                                                  write lyrics (chart: overwrite or --out; midi: lyricAdderOutput.mid or --out)
       timing <file>                              print phrase/syllable times in seconds
-      decode-audio <audio file>                  decode with the app's decoder and print format / duration / peak
+      decode-audio <audio file> [--wav <out.wav>]
+                                                 decode with the app's decoder and print format / duration / peak
       render-frame <file> <seconds> <out.png> [--size WxH] [--scale S]
                                                  render one Metal karaoke frame offscreen
       check-shaders                              compile the Metal shaders on this GPU
@@ -114,10 +131,12 @@ case "timing":
     }
 
 case "decode-audio":
+    let wavOut = option("--wav")
     guard args.count >= 1 else { usage() }
     let start = Date()
     do {
         let a = try AudioDecoder.decode(url: URL(fileURLWithPath: args[0]))
+        if let wavOut { try writeFloatWav(a, to: URL(fileURLWithPath: wavOut)) }
         var peak: Float = 0
         for c in a.channels { for x in c { peak = max(peak, abs(x)) } }
         print(String(format: "channels: %d, rate: %.0f, frames: %d, duration: %.3fs, peak: %.4f, decoded in %.2fs",

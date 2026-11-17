@@ -67,12 +67,15 @@ So the whole app is a single renderer page; porting it means porting the rendere
 | Backup file name fixed per song | 2nd write overwrites the real original | timestamped backups |
 | Windows `\\` path handling, config relative to CWD | breaks outside Windows | `URL`s, Application Support |
 | `song.ogg` or last `.ogg/.mp3` only | no vocals stem in preview | mixes all Clone Hero stems |
+| Chromium `<audio>` only; `.opus` not looked for | Opus charts (most Clone Hero charts today) have no preview audio | Ogg Opus demuxed and decoded with CoreAudio's Opus codec, also when named `.ogg` |
 
 ## Verification
 
 * `scripts/parity_original.js` runs the **original** `mainScripts.js` / `midiScripts.js` in Node's `vm` with DOM shims.
   - chart fixture: original output == port output byte-for-byte (port additionally keeps BOM + final CRLF).
   - MIDI fixture without running status: identical phrases/lyrics; with running status the original fails (bug above).
-* `swift test`: 16 tests (syntax, same-tick rules, tempo maps, VLQ, MIDI preservation, note-off, slides, long UTF-8 lyrics).
+* `swift test`: 19 tests (syntax, same-tick rules, tempo maps, VLQ, MIDI preservation, note-off, slides, long UTF-8 lyrics,
+  Ogg Opus decoding and stem discovery).
 * GUI: wrote a chart from the app; backup == original bytes, written chart == CLI == original JS.
-* `lyricadder-cli render-frame` renders the Metal preview offscreen; `decode-audio` decodes Vorbis (duration matches CoreAudio).
+* `lyricadder-cli render-frame` renders the Metal preview offscreen; `decode-audio` decodes Vorbis (duration matches CoreAudio)
+  and Opus (`--wav` output matches `opusdec --float` within 6e-8, same length, at 2.5–60 ms frame sizes, mono and stereo).

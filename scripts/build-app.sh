@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 ROOT="$PWD"
 OUT="$ROOT/build"
 APP="$OUT/LyricAdder.app"
-VERSION="1.2.2"
+VERSION="1.2.3"
 
 echo "==> Validating Metal shaders with the offline compiler"
 TMP="$(mktemp -d)"
